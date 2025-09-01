@@ -2,8 +2,6 @@ import type React from "react"
 import { GeistSans } from "geist/font/sans"
 import { GeistMono } from "geist/font/mono"
 import { Analytics } from "@vercel/analytics/next"
-import { Provider } from "react-redux"
-import { store } from "@/lib/store"
 import { Suspense } from "react"
 import "./globals.css"
 
@@ -22,7 +20,7 @@ export default function RootLayout({
             </div>
           }
         >
-          <Provider store={store}>{children}</Provider>
+          {children}
         </Suspense>
         <Analytics />
       </body>
