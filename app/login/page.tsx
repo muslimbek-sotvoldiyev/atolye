@@ -7,48 +7,68 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Gem, Lock, User } from "lucide-react"
 import { useRouter } from "next/navigation"
+import { useLoginMutation } from "@/lib/service/authApi"
+import { useDispatch } from "react-redux"
+// import { ReduxProvider } from "@/components/providers/redux-provider"
+import api from "@/lib/service/api"
+import StoreProvider from "@/lib/providers"
 
-export default function WorkshopLogin() {
-  const [credentials, setCredentials] = useState({
+function WorkshopLoginForm() {
+  const dispatch = useDispatch()
+  const router = useRouter()
+  const [login, { isLoading }] = useLoginMutation()
+  
+  const [formData, setFormData] = useState({
     username: "",
     password: "",
   })
-  const [isLoading, setIsLoading] = useState(false)
-  const router = useRouter()
+  const [error, setError] = useState("")
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { id, value } = e.target
+    setFormData((prev) => ({
+      ...prev,
+      [id]: value,
+    }))
+  }
+
+  const saveToLocalStorage = (data: {
+    access: string
+    refresh: string
+    user: any
+  }) => {
+    // Workshop specific token storage
+    localStorage.setItem("access", data.access)
+    localStorage.setItem("refresh", data.refresh)
+    localStorage.setItem("user", JSON.stringify(data.user))
+    // Atolye nomini saqlash
+    localStorage.setItem("username", data.user.workshop_name || formData.username)
+  }
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
-    setIsLoading(true)
+    setError("")
 
-    // API call would go here - commented for demo
-    /*
     try {
-      const response = await fetch('/api/workshop/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(credentials)
-      })
-      const data = await response.json()
-      if (data.success) {
-        localStorage.setItem('workshopToken', data.token)
-        router.push('/workshop')
-      }
-    } catch (error) {
-      console.error('Login failed:', error)
-    }
-    */
+      const result = await login(formData).unwrap()
 
-    // Demo login - simulate API delay
-    setTimeout(() => {
-      if (credentials.username && credentials.password) {
-        localStorage.setItem("workshopToken", "demo-token")
-        localStorage.setItem("workshopName", credentials.username)
+      if (result && result.access) {
+        saveToLocalStorage(result)
+        dispatch(api.util.resetApiState())
         router.push("/workshop")
+      } else {
+        setError("Tizimga kirishda xatolik. Qaytadan urinib ko'ring.")
       }
-      setIsLoading(false)
-    }, 1000)
+    } catch (err) {
+      if (typeof err === "object" && err !== null && "data" in err) {
+        setError((err.data as any).message || "Noto'g'ri atolye nomi yoki parol")
+      } else {
+        setError("Tizimga kirishda xatolik yuz berdi")
+      }
+    }
   }
 
   return (
@@ -74,9 +94,10 @@ export default function WorkshopLogin() {
                   type="text"
                   placeholder="Atolye nomini kiriting"
                   className="pl-10"
-                  value={credentials.username}
-                  onChange={(e) => setCredentials((prev) => ({ ...prev, username: e.target.value }))}
+                  value={formData.username}
+                  onChange={handleChange}
                   required
+                  disabled={isLoading}
                 />
               </div>
             </div>
@@ -89,12 +110,18 @@ export default function WorkshopLogin() {
                   type="password"
                   placeholder="Parolni kiriting"
                   className="pl-10"
-                  value={credentials.password}
-                  onChange={(e) => setCredentials((prev) => ({ ...prev, password: e.target.value }))}
+                  value={formData.password}
+                  onChange={handleChange}
                   required
+                  disabled={isLoading}
                 />
               </div>
             </div>
+            {error && (
+              <Alert variant="destructive">
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
             <Button type="submit" className="w-full" disabled={isLoading}>
               {isLoading ? "Kirilmoqda..." : "Kirish"}
             </Button>
@@ -102,5 +129,13 @@ export default function WorkshopLogin() {
         </CardContent>
       </Card>
     </div>
+  )
+}
+
+export default function WorkshopLogin() {
+  return (
+    <StoreProvider>
+      <WorkshopLoginForm />
+    </StoreProvider>
   )
 }

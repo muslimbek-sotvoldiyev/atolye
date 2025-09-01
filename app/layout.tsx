@@ -4,6 +4,7 @@ import { GeistMono } from "geist/font/mono"
 import { Analytics } from "@vercel/analytics/next"
 import { Suspense } from "react"
 import "./globals.css"
+import StoreProvider from "@/lib/providers"
 
 export default function RootLayout({
   children,
@@ -20,7 +21,7 @@ export default function RootLayout({
             </div>
           }
         >
-          {children}
+          <StoreProvider>{children}</StoreProvider>
         </Suspense>
         <Analytics />
       </body>
